@@ -361,6 +361,14 @@ textarea { resize: vertical; min-height: 56px; }
     </div>
   </div>
 
+  <!-- ══ HOSTING STATUS BANNER (hidden if served via HTTPS) ══ -->
+  <div id="hostingBanner" style="display:none;background:#fff3cd;border-left:4px solid #ffc107;padding:10px 18px;font-size:12px;line-height:1.7;">
+    <strong>📡 Running Locally (file://)</strong> — Box labels, order summaries, and local catalog work great.
+    <strong>Google Sheets sync requires HTTPS hosting.</strong>
+    Free option: upload this file as <code>index.html</code> to a GitHub Pages repo.
+    Go to <strong>Tools tab → View Setup Guide</strong> for step-by-step instructions.
+  </div>
+
   <!-- ══ CUSTOMER MODE SELECTION ══ -->
   <div class="customer-mode-card">
     <div class="customer-mode-label">📋 Step 1 — Customer Type</div>
@@ -532,19 +540,39 @@ textarea { resize: vertical; min-height: 56px; }
           </div>
         </div>
         <div id="setupGuide" style="display:none;background:#fffbf0;border:1px solid #f0d080;border-radius:6px;padding:14px;margin-top:14px;font-size:12px;line-height:1.8;">
+
+          <!-- HOSTING NOTE -->
+          <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:5px;padding:10px 14px;margin-bottom:14px;">
+            <strong>⚠️ Important — Google Sheets Sync Requires HTTPS Hosting</strong><br>
+            If you're opening this file by <strong>double-clicking it</strong> (file:// in the browser address bar), the "Pull Customers" sync button won't work due to browser security restrictions.<br><br>
+            <strong>Free fix — host it on GitHub Pages:</strong><br>
+            1. Go to <a href="https://github.com" target="_blank" style="color:#0072CE;">github.com</a> → create a free account (if needed) → New Repository<br>
+            2. Name it something like <code>arena-order-hub</code> → set to <strong>Public</strong><br>
+            3. Upload <strong>arena-fanatic-order-hub-v4.html</strong> → rename it to <strong>index.html</strong><br>
+            4. Go to Settings → Pages → Source: <em>Deploy from branch → main → / (root)</em> → Save<br>
+            5. Your hub will be live at <strong>https://yourusername.github.io/arena-order-hub/</strong><br>
+            6. Bookmark that URL — Sheets sync will work fully from there.<br><br>
+            <em>All other features (box labels, order summaries, local customer catalog) work fine from a local file.</em>
+          </div>
+
           <strong>Google Apps Script Setup (one-time, ~5 minutes):</strong><br><br>
-          1. Open a <strong>new</strong> Google Sheet. Rename it something like "Arena Fanatic Order Hub".<br>
-          2. The script will auto-create two tabs: <strong>Orders</strong> and <strong>Customers</strong>.<br>
+          1. Open (or create) your Google Sheet. Name it something like "Arena Fanatic Order Hub" — or use your existing "Customer Profile" sheet.<br>
+          2. The script auto-creates two tabs: <strong>Orders</strong> and <strong>Customers</strong> (with formatted headers) on first use.<br>
           3. Click <strong>Extensions → Apps Script</strong>.<br>
-          4. Delete any existing code and paste the script below.<br>
+          4. Delete any existing code, then paste the script below (or use the downloaded .js file).<br>
           5. Click <strong>Deploy → New Deployment → Web App</strong>.<br>
           6. Set "Execute as" = <em>Me</em> &nbsp;|&nbsp; "Who has access" = <em>Anyone</em>.<br>
           7. Click Deploy, authorize when prompted, and copy the Web App URL.<br>
           8. Paste that URL in the field above and click <strong>Test</strong>.<br>
-          9. To preload existing customers: open the <strong>Customers</strong> tab in your sheet and add rows with columns: <em>Name, Contact, Phone, Email</em>. Then click "Pull Customers from Sheets".<br><br>
-          <strong>Apps Script — paste this entire block:</strong><br>
-          <textarea id="appsScriptCode" readonly style="width:100%;height:340px;font-family:monospace;font-size:11px;background:#f8f8f8;border:1px solid #ddd;padding:8px;border-radius:4px;line-height:1.5;" onclick="this.select()"></textarea>
-          <button class="btn btn-outline" onclick="document.getElementById('appsScriptCode').select();document.execCommand('copy');this.textContent='✓ Copied!';" style="margin-top:8px;font-size:12px;padding:6px 14px;">📋 Copy Script</button>
+          9. To preload existing customers: add rows to the <strong>Customers</strong> tab with columns: <em>Name, Contact, Phone, Email</em>. Then click "Pull Customers from Sheets".<br><br>
+
+          <strong>Apps Script — copy from here or use the downloaded .js file:</strong><br>
+          <div style="display:flex;gap:8px;align-items:center;margin:6px 0 4px;">
+            <button class="btn btn-outline" onclick="(function(){var ta=document.getElementById('appsScriptCode');ta.select();var ok=document.execCommand('copy');var btn=event.target;btn.textContent=ok?'✓ Copied!':'Select All → Ctrl+C';setTimeout(()=>btn.textContent='📋 Copy Script',2500);})();" style="font-size:12px;padding:6px 14px;">📋 Copy Script</button>
+            <button class="btn btn-outline" onclick="downloadAppsScript();" style="font-size:12px;padding:6px 14px;">⬇️ Download as .js File</button>
+            <span style="font-size:11px;color:#888;">Click inside the box and use Ctrl+A, Ctrl+C if Copy button doesn't work in your browser.</span>
+          </div>
+          <textarea id="appsScriptCode" readonly style="width:100%;height:360px;font-family:monospace;font-size:11px;background:#f8f8f8;border:1px solid #ddd;padding:10px;border-radius:4px;line-height:1.6;margin-top:4px;" onclick="this.select()" placeholder="Loading script..."></textarea>
         </div>
       </div>
 
@@ -650,102 +678,14 @@ document.addEventListener('DOMContentLoaded', function() {
   renderCustomerCatalog();
   renderOrderHistory();
   refreshReorderDropdown();
-  // Populate Apps Script textarea (avoids browser stripping inline script content)
-  const scriptCode = [
-    '// ── ARENA SPORTS & FANATIC GRAPHIX — ORDER HUB SCRIPT ──',
-    '// Two-way sync: reads customer list, writes orders + new customers',
-    '// Sheet tabs auto-created: "Orders" and "Customers"',
-    '',
-    'function getOrCreateSheet(name) {',
-    '  var ss = SpreadsheetApp.getActiveSpreadsheet();',
-    '  var sheet = ss.getSheetByName(name);',
-    '  if (!sheet) { sheet = ss.insertSheet(name); }',
-    '  return sheet;',
-    '}',
-    '',
-    'function doPost(e) {',
-    '  try {',
-    '    var data = JSON.parse(e.postData.contents);',
-    '    var action = data.action || "logOrder";',
-    '    if (action === "logOrder") { return logOrder(data); }',
-    '    if (action === "saveCustomer") { return saveCustomer(data); }',
-    '    return ok("unknown action");',
-    '  } catch(err) { return error(err.toString()); }',
-    '}',
-    '',
-    'function doGet(e) {',
-    '  var action = e && e.parameter && e.parameter.action;',
-    '  if (action === "getCustomers") { return getCustomers(); }',
-    '  return ContentService.createTextOutput(JSON.stringify({status:"connected"}))',
-    '    .setMimeType(ContentService.MimeType.JSON);',
-    '}',
-    '',
-    '// ── LOG AN ORDER ──',
-    'function logOrder(data) {',
-    '  var sheet = getOrCreateSheet("Orders");',
-    '  if (sheet.getLastRow() === 0) {',
-    '    sheet.appendRow(["Timestamp","Customer Name","Contact Name","Phone","Email",',
-    '      "Order Date","Job / PO#","Invoice #","Description","Total Qty","Line Items"]);',
-    '    sheet.getRange(1,1,1,11).setFontWeight("bold").setBackground("#222222").setFontColor("#ffffff");',
-    '  }',
-    '  sheet.appendRow([',
-    '    new Date().toLocaleString(),',
-    '    data.customerName || "", data.contactName || "",',
-    '    data.phone || "", data.email || "",',
-    '    data.orderDate || "", data.jobNumber || "",',
-    '    data.invoiceNumber || "", data.description || "",',
-    '    data.totalQty || 0, data.lineItemsSummary || ""',
-    '  ]);',
-    '  return ok("order logged");',
-    '}',
-    '',
-    '// ── SAVE A NEW CUSTOMER ──',
-    'function saveCustomer(data) {',
-    '  var sheet = getOrCreateSheet("Customers");',
-    '  if (sheet.getLastRow() === 0) {',
-    '    sheet.appendRow(["Name","Contact","Phone","Email","Added"]);',
-    '    sheet.getRange(1,1,1,5).setFontWeight("bold").setBackground("#0072CE").setFontColor("#ffffff");',
-    '  }',
-    '  var values = sheet.getDataRange().getValues();',
-    '  for (var i = 1; i < values.length; i++) {',
-    '    if (values[i][0].toString().toLowerCase() === (data.name || "").toLowerCase()) {',
-    '      sheet.getRange(i+1,1,1,5).setValues([[data.name, data.contact||"",',
-    '        data.phone||"", data.email||"", new Date().toLocaleDateString()]]);',
-    '      return ok("customer updated");',
-    '    }',
-    '  }',
-    '  sheet.appendRow([data.name, data.contact||"", data.phone||"", data.email||"",',
-    '    new Date().toLocaleDateString()]);',
-    '  return ok("customer saved");',
-    '}',
-    '',
-    '// ── GET CUSTOMER LIST ──',
-    'function getCustomers() {',
-    '  var sheet = getOrCreateSheet("Customers");',
-    '  var values = sheet.getDataRange().getValues();',
-    '  var customers = [];',
-    '  for (var i = 1; i < values.length; i++) {',
-    '    var row = values[i];',
-    '    if (row[0]) {',
-    '      customers.push({name:row[0], contact:row[1]||"", phone:row[2]||"", email:row[3]||""});',
-    '    }',
-    '  }',
-    '  return ContentService.createTextOutput(JSON.stringify({status:"ok", customers:customers}))',
-    '    .setMimeType(ContentService.MimeType.JSON);',
-    '}',
-    '',
-    '// ── HELPERS ──',
-    'function ok(msg) {',
-    '  return ContentService.createTextOutput(JSON.stringify({status:"ok",message:msg}))',
-    '    .setMimeType(ContentService.MimeType.JSON);',
-    '}',
-    'function error(msg) {',
-    '  return ContentService.createTextOutput(JSON.stringify({status:"error",message:msg}))',
-    '    .setMimeType(ContentService.MimeType.JSON);',
-    '}'
-  ].join('\n');
-  const ta = document.getElementById('appsScriptCode');
-  if (ta) ta.value = scriptCode;
+  // Show local-file hosting warning if running from file:// protocol
+  if (window.location.protocol === 'file:') {
+    const banner = document.getElementById('hostingBanner');
+    if (banner) banner.style.display = 'block';
+  }
+
+  // Populate Apps Script textarea (called here for pre-load; also called each time setup guide opens)
+  populateAppsScriptTextarea();
 
   // Auto-pull customers from Sheets if URL is configured
   if (localStorage.getItem('af_sheetsUrl')) {
@@ -1154,9 +1094,127 @@ async function pushToSheets(payload) {
   }
 }
 
-function showSetupGuide() {
+function downloadAppsScript() {
+  const ta = document.getElementById('appsScriptCode');
+  const content = ta ? ta.value : '';
+  if (!content) { alert('Script not loaded yet — try clicking "View Setup Guide" once first.'); return; }
+  const blob = new Blob([content], { type: 'text/javascript' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'ArenaFanatic-OrderHub-AppsScript.js';
+  a.click();
+  URL.revokeObjectURL(url);
+}
   const guide = document.getElementById('setupGuide');
-  guide.style.display = guide.style.display === 'none' ? 'block' : 'none';
+  const isVisible = guide.style.display !== 'none' && guide.style.display !== '';
+  guide.style.display = isVisible ? 'none' : 'block';
+  // Re-populate textarea every time the guide opens (fixes display:none timing in some browsers)
+  if (!isVisible) { populateAppsScriptTextarea(); }
+}
+
+function populateAppsScriptTextarea() {
+  const scriptCode = [
+    '// ══════════════════════════════════════════════════════════════════',
+    '// ARENA SPORTS & FANATIC GRAPHIX — ORDER HUB: GOOGLE APPS SCRIPT',
+    '// ══════════════════════════════════════════════════════════════════',
+    '//',
+    '// Paste this entire block into Extensions → Apps Script, then',
+    '// Deploy → New Deployment → Web App',
+    '//   Execute as: Me | Who has access: Anyone',
+    '//',
+    '',
+    'function getOrCreateSheet(name) {',
+    '  var ss = SpreadsheetApp.getActiveSpreadsheet();',
+    '  var sheet = ss.getSheetByName(name);',
+    '  if (!sheet) { sheet = ss.insertSheet(name); }',
+    '  return sheet;',
+    '}',
+    '',
+    'function doPost(e) {',
+    '  try {',
+    '    var data = JSON.parse(e.postData.contents);',
+    '    var action = data.action || "logOrder";',
+    '    if (action === "logOrder")     { return logOrder(data); }',
+    '    if (action === "saveCustomer") { return saveCustomer(data); }',
+    '    return ok("unknown action");',
+    '  } catch(err) { return error(err.toString()); }',
+    '}',
+    '',
+    'function doGet(e) {',
+    '  var action = e && e.parameter && e.parameter.action;',
+    '  if (action === "getCustomers") { return getCustomers(); }',
+    '  return ContentService.createTextOutput(JSON.stringify({status:"connected"}))',
+    '    .setMimeType(ContentService.MimeType.JSON);',
+    '}',
+    '',
+    '// ── LOG AN ORDER ──',
+    'function logOrder(data) {',
+    '  var sheet = getOrCreateSheet("Orders");',
+    '  if (sheet.getLastRow() === 0) {',
+    '    sheet.appendRow(["Timestamp","Customer Name","Contact Name","Phone","Email",',
+    '      "Order Date","Job / PO#","Invoice #","Description","Total Qty","Line Items"]);',
+    '    sheet.getRange(1,1,1,11).setFontWeight("bold").setBackground("#222222").setFontColor("#ffffff");',
+    '  }',
+    '  sheet.appendRow([',
+    '    new Date().toLocaleString(),',
+    '    data.customerName || "", data.contactName || "",',
+    '    data.phone || "", data.email || "",',
+    '    data.orderDate || "", data.jobNumber || "",',
+    '    data.invoiceNumber || "", data.description || "",',
+    '    data.totalQty || 0, data.lineItemsSummary || ""',
+    '  ]);',
+    '  return ok("order logged");',
+    '}',
+    '',
+    '// ── SAVE / UPDATE A CUSTOMER ──',
+    'function saveCustomer(data) {',
+    '  var sheet = getOrCreateSheet("Customers");',
+    '  if (sheet.getLastRow() === 0) {',
+    '    sheet.appendRow(["Name","Contact","Phone","Email","Added"]);',
+    '    sheet.getRange(1,1,1,5).setFontWeight("bold").setBackground("#0072CE").setFontColor("#ffffff");',
+    '  }',
+    '  var values = sheet.getDataRange().getValues();',
+    '  for (var i = 1; i < values.length; i++) {',
+    '    if (values[i][0].toString().toLowerCase() === (data.name || "").toLowerCase()) {',
+    '      sheet.getRange(i+1,1,1,5).setValues([[data.name, data.contact||"",',
+    '        data.phone||"", data.email||"", new Date().toLocaleDateString()]]);',
+    '      return ok("customer updated");',
+    '    }',
+    '  }',
+    '  sheet.appendRow([data.name, data.contact||"", data.phone||"", data.email||"",',
+    '    new Date().toLocaleDateString()]);',
+    '  return ok("customer saved");',
+    '}',
+    '',
+    '// ── GET CUSTOMER LIST ──',
+    'function getCustomers() {',
+    '  var sheet = getOrCreateSheet("Customers");',
+    '  var values = sheet.getDataRange().getValues();',
+    '  var customers = [];',
+    '  for (var i = 1; i < values.length; i++) {',
+    '    var row = values[i];',
+    '    if (row[0]) {',
+    '      customers.push({name:row[0].toString(), contact:row[1]?row[1].toString():"",',
+    '        phone:row[2]?row[2].toString():"", email:row[3]?row[3].toString():""});',
+    '    }',
+    '  }',
+    '  return ContentService.createTextOutput(JSON.stringify({status:"ok", customers:customers}))',
+    '    .setMimeType(ContentService.MimeType.JSON);',
+    '}',
+    '',
+    '// ── HELPERS ──',
+    'function ok(msg) {',
+    '  return ContentService.createTextOutput(JSON.stringify({status:"ok",message:msg}))',
+    '    .setMimeType(ContentService.MimeType.JSON);',
+    '}',
+    'function error(msg) {',
+    '  return ContentService.createTextOutput(JSON.stringify({status:"error",message:msg}))',
+    '    .setMimeType(ContentService.MimeType.JSON);',
+    '}'
+  ].join('\n');
+  const ta = document.getElementById('appsScriptCode');
+  if (ta) ta.value = scriptCode;
 }
 
 // ══════════════════════════════════════════════════════════════════
