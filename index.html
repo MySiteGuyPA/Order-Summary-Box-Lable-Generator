@@ -541,19 +541,10 @@ textarea { resize: vertical; min-height: 56px; }
         </div>
         <div id="setupGuide" style="display:none;background:#fffbf0;border:1px solid #f0d080;border-radius:6px;padding:14px;margin-top:14px;font-size:12px;line-height:1.8;">
 
-          <!-- HOSTING NOTE -->
-          <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:5px;padding:10px 14px;margin-bottom:14px;">
-            <strong>⚠️ Important — Google Sheets Sync Requires HTTPS Hosting</strong><br>
-            If you're opening this file by <strong>double-clicking it</strong> (file:// in the browser address bar), the "Pull Customers" sync button won't work due to browser security restrictions.<br><br>
-            <strong>Free fix — host it on GitHub Pages:</strong><br>
-            1. Go to <a href="https://github.com" target="_blank" style="color:#0072CE;">github.com</a> → create a free account (if needed) → New Repository<br>
-            2. Name it something like <code>arena-order-hub</code> → set to <strong>Public</strong><br>
-            3. Upload <strong>arena-fanatic-order-hub-v4.html</strong> → rename it to <strong>index.html</strong><br>
-            4. Go to Settings → Pages → Source: <em>Deploy from branch → main → / (root)</em> → Save<br>
-            5. Your hub will be live at <strong>https://yourusername.github.io/arena-order-hub/</strong><br>
-            6. Bookmark that URL — Sheets sync will work fully from there.<br><br>
-            <em>All other features (box labels, order summaries, local customer catalog) work fine from a local file.</em>
-          </div>
+          <!-- HOSTING NOTE: only shown when running locally -->
+          <div id="setupHostingNote" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:5px;padding:10px 14px;margin-bottom:14px;">
+            <strong>⚠️ Google Sheets Sync Requires HTTPS Hosting</strong><br>
+            You're opening this file locally (file://). The "Pull Customers" sync won't work until this file is hosted. See the GitHub Pages option above.</div>
 
           <strong>Google Apps Script Setup (one-time, ~5 minutes):</strong><br><br>
           1. Open (or create) your Google Sheet. Name it something like "Arena Fanatic Order Hub" — or use your existing "Customer Profile" sheet.<br>
@@ -678,10 +669,14 @@ document.addEventListener('DOMContentLoaded', function() {
   renderCustomerCatalog();
   renderOrderHistory();
   refreshReorderDropdown();
-  // Show local-file hosting warning if running from file:// protocol
-  if (window.location.protocol === 'file:') {
-    const banner = document.getElementById('hostingBanner');
-    if (banner) banner.style.display = 'block';
+  // Show local-file hosting warning ONLY on file:// — hidden on http/https
+  const banner = document.getElementById('hostingBanner');
+  if (banner) {
+    banner.style.display = (window.location.protocol === 'file:') ? 'block' : 'none';
+  }
+  const setupNote = document.getElementById('setupHostingNote');
+  if (setupNote) {
+    setupNote.style.display = (window.location.protocol === 'file:') ? 'block' : 'none';
   }
 
   // Populate Apps Script textarea (called here for pre-load; also called each time setup guide opens)
