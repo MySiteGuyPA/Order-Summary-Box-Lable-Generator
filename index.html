@@ -329,6 +329,10 @@ textarea { resize: vertical; min-height: 52px; }
         <label>Order Date</label>
         <input type="date" id="s-date">
       </div>
+      <div class="col-full">
+        <label>Contact <span style="color:#888;font-weight:400">(Customer's name)</span></label>
+        <input type="text" id="s-contact" placeholder="e.g. Coach Mike Smith">
+      </div>
       <div>
         <label>Phone</label>
         <input type="tel" id="s-phone" placeholder="e.g. (717) 555-0100">
@@ -552,6 +556,7 @@ function removeLineItem(n) {
 function getShared() {
   return {
     name:    document.getElementById('s-name').value.trim(),
+    contact: document.getElementById('s-contact').value.trim(),
     date:    document.getElementById('s-date').value,
     phone:   document.getElementById('s-phone').value.trim(),
     email:   document.getElementById('s-email').value.trim(),
@@ -622,6 +627,7 @@ function buildLabelHalf(d, i, total, hasArt) {
       <span class="label-cust-label">Customer:</span>
       <span class="label-cust-name">${d.name ? esc(d.name) : '—'}</span>
     </div>
+    ${d.contact ? `<div class="lf" style="margin-bottom:4px"><span class="lf-title">Contact:</span><span class="lf-value">${esc(d.contact)}</span></div>` : ''}
     <div class="label-body">
       ${jobHTML}${invHTML}${descHTML}
       <div class="lf" style="margin-top:4px">
@@ -708,6 +714,7 @@ function generateOrderSummary() {
         <div class="sum-info-cell"><div class="sum-info-label">Job / PO #</div><div class="sum-info-value">${d.job ? esc(d.job) : '—'}</div></div>
         <div class="sum-info-cell"><div class="sum-info-label">Phone / Email</div><div class="sum-info-value" style="font-size:10px">${d.phone ? esc(d.phone) : ''}${d.phone && d.email ? ' · ' : ''}${d.email ? esc(d.email) : ''}${!d.phone && !d.email ? '—' : ''}</div></div>
       </div>
+      ${d.contact ? `<div style="background:#f8f8f8;padding:7px 14px;border-bottom:1px solid #e0e0e0;font-size:11px"><span style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.4px">Contact: </span><span style="font-weight:700;color:#111">${esc(d.contact)}</span></div>` : ''}
 
       ${d.desc ? `
       <div class="sum-section-head">Notes / Description</div>
@@ -823,7 +830,7 @@ function startNewOrder() {
   if (!confirm('Clear all fields and start a new order?')) return;
 
   // Clear shared fields
-  ['s-name','s-date','s-phone','s-email','s-job','s-invoice','s-desc'].forEach(id => {
+  ['s-name','s-contact','s-date','s-phone','s-email','s-job','s-invoice','s-desc'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = id === 's-date' ? new Date().toISOString().split('T')[0] : '';
   });
